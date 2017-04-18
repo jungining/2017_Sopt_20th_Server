@@ -5,10 +5,11 @@ const ejs = require('ejs'); //확장모듈
 const Converter = require('csvtojson').Converter; //확장모듈
 const json2csv = require('json2csv'); //확장모듈
 const bcrypt = require('bcryptjs'); //확장모듈
+const async = require('async');
 const saltRounds = 10;
 
-var array = []; //csv에 write될 배열 json to csv 기능은 json array 배열을 넣어주어야 동작한다.
-//request가 get방식인지 post 방식인지에 따라 코드를 분기하여 처리해야 한다.
+var array = []; //csv에 write될 배열
+
 const server = http.createServer(function(req, res){
   var converter = new Converter({});
   var body = "";
@@ -46,20 +47,34 @@ const server = http.createServer(function(req, res){
           //body json으로 바꾸고
           jsonDogam = querystring.parse(body);
 
-          //비밀번호 해시한후
-          bcrypt.hash(jsonDogam.password, saltRounds, function(err, hashed){
-            if(err) console.log("Hashing error", err);
-            else {
-              jsonDogam.password = hashed;
-              array.push(jsonDogam); // jsonArray 형태로 넣어주고
-              console.log("jsonDogam in hased", jsonDogam);
-              //csv로 바꿔서
-              //참고링크 : http://stackoverflow.com/questions/20620771/how-to-parse-json-object-to-csv-file-using-json2csv-nodejs-module
-              json2csv({data: array,
-                        fields: ['name', 'charactor', 'weight', 'password']}, function(err, csv) {
-                if (err) console.log(err);
+          var task_array = [
+              function(callback){
+                bcrypt.hash(jsonDogam.password, saltRounds, function(err, hashed){
+                  if (err)
+                    callback(err, null);
+                  else{
+                    jsonDogam.password = hashed;
+                    array.push(jsonDogam); // jsonArray 형태로 넣어주고
+                    console.log("jsonDogam in hased", jsonDogam);
+                    //csv로 바꿔서
+                    //참고링크 : http://stackoverflow.com/questions/20620771/how-to-parse-json-object-to-csv-file-using-json2csv-nodejs-module
+                      callback(null, hashed);
+                  }
+                });
+              },
+              function(hashed, callback){
+                json2csv({data: array,
+                          fields: ['name', 'charactor', 'weight', 'password']}, function(err, csv) {
+                  if (err)
+                    callback(err, null);
+                  else
+                    callback(null, csv);
+
+                });
+              },
+              function(csv, callback){
                 fs.writeFile('./dogam.csv', csv, 'utf-8', function(error,data){
-                  if (error) console.log("writing csv error", error);
+                  if (error) callback(err, "writing csv error");
                   else{
                     res.writeHead(201,{
                       'Content-Type' : 'text/plain; charset=utf-8'
@@ -67,11 +82,21 @@ const server = http.createServer(function(req, res){
                     res.end("저장완료");
                   }
                 });
-              });
-            }
-          });
+              }
+            ];
+
+            async.waterfall(task_array, function(err, result){
+              if(err)
+                console.log(err);
+              else
+                console.log(result);
+            });
+
+
+
         }
     });
+  });
 server.listen(3000,function() {
   console.log("3000번 포트에서 실행중");
 });
