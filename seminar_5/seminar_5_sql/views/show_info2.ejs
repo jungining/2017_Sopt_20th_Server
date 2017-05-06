@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1>SOPT 20기</h1>
+    아이디, 이름, 파트 <br>
+    <%for(let i = 0; i<student.length; i++){%>
+      <%=student[i].id%>, <%=student[i].name%>, <%=student[i].part%> <br>
+    <%}%>
+    <h2>파트원 저장</h2>
+    <form action='/partone/save' method='POST'>
+    <table>
+      <tr>
+        <td>아이디 : </td>
+        <td><input type="text" id="id" name="id" placeholder="학번"></td>
+      </tr>
+      <tr>
+        <td>이름 : </td>
+        <td><input type="text" id="name" name="name" placeholder="이름"></td>
+      </tr>
+      <tr>
+        <td>파트 : </td>
+        <td><input type="text" id="part" name="part" placeholder="파트"></td>
+      </tr>
+        <tr>
+        <td style="text-align:center" colspan="2"><input type="submit" value="저장" /></td>
+      </tr>
+    </table>
+  </form>
+  <h2>파트원 파트수정</h2>
+  <form action='/partone/edit' method='POST'>
+  <table>
+    <tr>
+      <td>아이디 : </td>
+      <td><input type="text" id="id" name="id" placeholder="학번"></td>
+    </tr>
+    <tr>
+      <td>이름 : </td>
+      <td><input type="text" id="name" name="name" placeholder="이름"></td>
+    </tr>
+    <tr>
+      <td>파트 : </td>
+      <td><input type="text" id="part" name="part" placeholder="학번"></td>
+    </tr>
+      <tr>
+      <td style="text-align:center" colspan="2"><input type="submit" value="수정" /></td>
+    </tr>
+  </table>
+</form>
+  </body>
+</html>
