@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 const mysql = require('mysql');
 const ejs = require('ejs');
+const bcrypt = require('bcryptjs'); //윈도우에서는 js빼고 돌려주세욤~~~~~
+
 const dbConfig = {
   host : 'localhost',
   port : '3306',
@@ -17,26 +19,39 @@ const pool = mysql.createPool(dbConfig);
 
 //로그인
 router.get('/', function(req, res){
-fs.readFile('views/singin.ejs', 'utf-8',function(err,result){
+fs.readFile('views/login.ejs', 'utf-8',function(err,result){
   if(err) console.log('reading ejs err : ', err);
   else res.status(200).send(ejs.render(result));
   });
 });
 
-router.get('/login', function(req, res){
+router.post('/', function(req, res){
   pool.getConnection(function(err, connection){
     if(err) console.log('getConnection err : ', err );
     else{
-      let query = 'select * from trainer, pokemon where trainer.id = owns.trainer_id and email = ?';
-        connection.query(query , req.query.email, function(err, data){ // injection 방어 : +가 아니라 , 를 추가
+      let query = 'select * from trainer where email = ?';
+        connection.query(query , req.body.email, function(err, data){ // injection 방어 : +가 아니라 , 를 추가
           if(err){
             console.log("query err: ", err);
-            connection.release(); //pool에 반납ㄴ한다. connection 이면 end()
-
+            connection.release();
           }
           else{
-            res.redirect('pokemon/'+trainer_id);
-            res.status(200).send(data);
+            if(data.length>0){
+              bcrypt.compare(req.body.password, data[0].password, function(err, result) {
+                  if (err)
+                      console.log("compare error", err);
+                  else {
+                      if (result) { //로그인 성공
+                        res.redirect('/pokemon/' + data[0].id);
+                      } else {
+                        res.status(403).send("아이디나 비밀번호가 올바르지 않습니다");
+                      }
+                  }
+              });
+            }
+            else{
+                res.status(403).send("존재하지 않는 아이디입니다. 먼저 가입해주세요");
+            }
             connection.release();
           }
         });

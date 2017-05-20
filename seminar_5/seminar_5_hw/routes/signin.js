@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 const mysql = require('mysql');
 const ejs = require('ejs');
+const bcrypt = require('bcryptjs');
+const saltRounds = 10;
 const dbConfig = {
   host : 'localhost',
   port : '3306',
@@ -37,17 +39,25 @@ router.post('/', function(req, res){
         else{
           if(data.length!==0) res.status(403).send("이미 존재하는 계정입니다.");
           else{
-            let query2 = 'insert into trainer values(null,?,?,?)';
-            connection.query(query2, [req.body.email, req.body.name, req.body.password], function(err, result){
-                  if(err){
-                    console.log('second query err', err);
-                    connection.relase();
-                  }
-                  else{
-                    res.status(201).send("회원가입 완료");
-                  }
-                  connection.release();
-            });
+          bcrypt.hash(req.body.password, saltRounds, function(err, hashed){
+            if(err) console.log("Hashing error", err);
+            else{
+            
+              let query2 = 'insert into trainer values(null,?,?,?)';
+              connection.query(query2, [req.body.email, req.body.name, hashed], function(err, result){
+                    if(err){
+                      console.log('second query err', err);
+                      connection.relase();
+                    }
+                    else{
+                      res.status(201).send("회원가입 완료");
+                    }
+                    connection.release();
+              });
+            }
+          });
+
+
           }
         }
       });

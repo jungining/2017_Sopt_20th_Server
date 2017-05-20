@@ -12,33 +12,50 @@ const dbConfig = {
   connectionLimit : 10
 };
 
-//커넥션 10개가 담기는 풀을 만들어서
+// id로 owns 테이블에서 가지고 있는
+
 const pool = mysql.createPool(dbConfig);
 
-//포켓몬 리스트 보여주기
-router.get('/'+trainer_id, function(req, res){
-fs.readFile('views/pokemon.ejs', 'utf-8',function(err,result){
-  if(err) console.log('reading ejs err : ', err);
-  else res.status(200).send(ejs.render(result));
-  });
-});
 
+router.get('/:trainer_id', function(req, res, next){
+  fs.readFile('views/pokemon.ejs', 'utf-8', function(err, result333) {
+        if(err) {
+          console.log("reading ehs error", err);
+          callback(err, null);
+        }
+        else {
+          pool.getConnection(function(err, connection){
+            if(err) console.log('getConnection err : ', err );
+            else{
+              connection.query('select * from trainer where id = ?',req.params.trainer_id, function(err, result){
+                if(err){
+                  console.log("query err: ", err);
+                  connection.release();
+                }
+                else{
+                  var trainer = result[0];
+                  connection.query('select * from owns, pokemon where owns.trainer_id = ? and pokemon.id = owns.pokemon_id ORDER BY pokemon.id ASC', req.params.trainer_id, function(error, rows){
+                    if(error){
+                      res.status(500).send("query err : ",err);
+                    }
+                    else{
+                      if(rows.length > 0){
+                        res.send(ejs.render(result333,
+                        { trainer_name : trainer.name
+                        , pokemon : rows }));
+                      }
+                      else{
+                        res.status(200).send("정보가 없습니다.") ;
+                      }
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+    });
 
-router.get('/pokemon/:trainer_id', function(req, res, next){
-  connection.query('select * from pokemon where trainer_id = ?', [req.params.trainer_id], function(error, rows){
-    if(error){
-      console.log(error);
-      res.send(500, "실패");
-    }
-    else{
-      if(rows.length > 0){
-        res.render('result', {trainer_name : "트레이너 이름", pokemon :rows});
-      }
-      else{
-        res.send(200, "정보가 없습니다.");
-      }
-    }
-  });
-});
 
  module.exports = router;
