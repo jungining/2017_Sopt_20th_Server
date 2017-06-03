@@ -17,22 +17,74 @@ const upload = multer({
   })
 });
 
+
+// get /pokemon  : 저장된 모든 포켓몬 이름만 조회
 router.get('/', function(req, res){
   pool.getConnection(function(err, connection){
     if(err) console.log('getConnection err: ',err);
     else{
-      let query = 'select * from pokemon';
+      let query = 'select name from pokemon';
       connection.query(query, function(err, data){
         if(err) console.log('selecting query err: ',err);
-        else res.status(200).send({result: data}); //5차 세미나까지는 ejs 템플릿으로 브라우저에 화면을 뿌려줬지만, 클라이언트가 앞으로 뷰를 담당하므로
-                                                   //서버에서는 이제부터 쿼리 결과를 json객체에 담아서 보내주도록 합니다.
+        else res.status(200).send({result: data});
         connection.release();
       });
     }
   });
 });
 
-router.post('/', upload.single('image'), function(req, res){
+
+// get /pokemon/:id : 특정 포켓몬의 모든 정보(이름, 특성, 이미지) 조회
+router.get('/:id', function(req, res){
+  pool.getConnection(function(err, connection){
+    if(err) console.log('getConnection err: ',err);
+    else{
+      let query = 'select * from pokemon where id = ?';
+      connection.query(query, req.params.id, function(err, data){
+        if(err) console.log('selecting query err: ',err);
+        else res.status(200).send({result: data[0]});
+        connection.release();
+      });
+    }
+  });
+});
+
+// put /pokemon/:id : 파라미터로 들어온 id 값을 가진 포켓몬 정보 수정
+router.put('/:id',upload.single('image'),function(req,res){
+  pool.getConnection(function(err, connection){
+    if(err) console.log('getConnection err: ',err);
+    else {
+      let query = 'update pokemon set name = ?, charactor = ?, imageUrl = ? where id = ?';
+      let imageUrl;
+      if(!req.file) imageUrl = null;
+      else imageUrl = req.file.location;
+      let inserts = [req.body.name, req.body.charactor, imageUrl, req.params.id];
+      connection.query(query, inserts, function(err){
+        if(err) console.log('inserting query err:', err);
+        else res.status(201).send({message: 'edit'});
+        connection.release();
+      });
+    }
+  });
+});
+
+// delete /pokemon/:id : 파라미터로 들어온 id 값을 가진 포켓몬 정보 삭제
+router.delete('/:id', function(req, res){
+  pool.getConnection(function(err, connection){
+    if(err) console.log('getConnection err: ',err);
+    else{
+      let query = 'delete from pokemon where id = ?';
+      connection.query(query, req.params.id, function(err, data){
+        if(err) console.log('selecting query err: ',err);
+        else res.status(200).send({message: 'delete'});
+        connection.release();
+      });
+    }
+  });
+});
+
+// post /pokemon : 새 포켓몬 저장
+router.post('/', upload.single('image'), function(req, res){ //ji : 여기서 정한게 클라가 넘겨줄 api key
   pool.getConnection(function(err, connection){
     if(err) console.log('getConnection err: ',err);
     else {
@@ -43,7 +95,7 @@ router.post('/', upload.single('image'), function(req, res){
       let record = {
         name: req.body.name,
         charactor: req.body.charactor,
-        image: imageUrl
+        imageUrl: imageUrl
       };
       connection.query(query, record, function(err){
         if(err) console.log('inserting query err:', err);
